@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -o pipefail -o errexit -o nounset
 
-readonly STAGING_DIR=$(mktemp -d)
 readonly YQ="{{yq}}"
 readonly TAR="{{tar}}"
 readonly IMAGE_DIR="{{image_dir}}"
@@ -35,14 +34,15 @@ done
 # We can't pass newlines to yq due to https://github.com/mikefarah/yq/issues/1430 and
 # we can't update YQ at the moment because structure_test depends on a specific version:
 # see https://github.com/bazel-contrib/rules_oci/issues/212
+manifest_json=$(mktemp)
 repo_tags="$(tr -d '\r' < "${TAGS_FILE}" | tr '\n' '%')" \
 config="blobs/${CONFIG_DIGEST}" \
 layers="${LAYERS}" \
 "${YQ}" eval \
         --null-input '.[0] = {"Config": env(config), "RepoTags": "${repo_tags}" | envsubst | split("%") | map(select(. != "")) , "Layers": env(layers) | map( "blobs/" + . + ".tar.gz") }' \
-        --output-format json > "${STAGING_DIR}/manifest.json"
+        --output-format json > "${manifest_json}"
 
-add_to_tar "${STAGING_DIR}/manifest.json" "manifest.json"
+add_to_tar "${manifest_json}" "manifest.json"
 
 # We've created the manifest, now hand it off to tar to create our final output
 "${TAR}" --create --file "${TARBALL_PATH}" "@${mtree}"
