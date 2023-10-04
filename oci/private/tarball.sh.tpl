@@ -3,6 +3,7 @@ set -o pipefail -o errexit -o nounset
 
 readonly STAGING_DIR=$(mktemp -d)
 readonly YQ="{{yq}}"
+readonly TAR="{{tar}}"
 readonly IMAGE_DIR="{{image_dir}}"
 readonly BLOBS_DIR="${STAGING_DIR}/blobs"
 readonly TARBALL_PATH="{{tarball_path}}"
@@ -34,5 +35,4 @@ layers="${LAYERS}" \
         --null-input '.[0] = {"Config": env(config), "RepoTags": "${repo_tags}" | envsubst | split("%") | map(select(. != "")) , "Layers": env(layers) | map( "blobs/" + . + ".tar.gz") }' \
         --output-format json > "${STAGING_DIR}/manifest.json"
 
-# TODO: https://github.com/bazel-contrib/rules_oci/issues/217
-tar -C "${STAGING_DIR}" -cf "${TARBALL_PATH}" manifest.json blobs
+${TAR} -C "${STAGING_DIR}" -cf "${TARBALL_PATH}" manifest.json blobs
