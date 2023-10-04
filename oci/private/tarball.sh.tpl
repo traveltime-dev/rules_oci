@@ -18,7 +18,7 @@ MANIFEST_BLOB_PATH="${IMAGE_DIR}/blobs/${MANIFEST_DIGEST}"
 
 CONFIG_DIGEST=$(${YQ} eval '.config.digest  | sub(":"; "/")' ${MANIFEST_BLOB_PATH})
 CONFIG_BLOB_PATH="${IMAGE_DIR}/blobs/${CONFIG_DIGEST}"
-echo >>"${mtree}" "blobs/${CONFIG_DIGEST} uid=0 gid=0 mode=0755 time=0 type=file content=${CONFIG_BLOB_PATH}"
+echo >>"${mtree}" "blobs/${CONFIG_DIGEST} uid=0 gid=0 mode=0755 time=1672560000 type=file content=${CONFIG_BLOB_PATH}"
 
 LAYERS=$(${YQ} eval '.layers | map(.digest | sub(":"; "/"))' ${MANIFEST_BLOB_PATH})
 for LAYER in $(${YQ} ".[]" <<< $LAYERS); do 
@@ -36,7 +36,7 @@ layers="${LAYERS}" \
         --null-input '.[0] = {"Config": env(config), "RepoTags": "${repo_tags}" | envsubst | split("%") | map(select(. != "")) , "Layers": env(layers) | map( "blobs/" + . + ".tar.gz") }' \
         --output-format json > "${STAGING_DIR}/manifest.json"
 
-echo >>"${mtree}" "manifest.json uid=0 gid=0 mode=0644 time=0 type=file content=${STAGING_DIR}/manifest.json"
+echo >>"${mtree}" "manifest.json uid=0 gid=0 mode=0644 time=1672560000 type=file content=${STAGING_DIR}/manifest.json"
 
 # We've created the manifest, now hand it off to tar to create our final output
 "${TAR}" --create --file "${TARBALL_PATH}" "@${mtree}"
