@@ -5,23 +5,24 @@ readonly STAGING_DIR=$(mktemp -d)
 readonly YQ="{{yq}}"
 readonly TAR="{{tar}}"
 readonly IMAGE_DIR="{{image_dir}}"
-readonly BLOBS_DIR="${STAGING_DIR}/blobs"
 readonly TARBALL_PATH="{{tarball_path}}"
 readonly TAGS_FILE="{{tags}}"
+
+# Write tar manifest in mtree format
+# https://man.freebsd.org/cgi/man.cgi?mtree(8)
+# so that tar produces a deterministic output.
+mtree=$(mktemp)
 
 MANIFEST_DIGEST=$(${YQ} eval '.manifests[0].digest | sub(":"; "/")' "${IMAGE_DIR}/index.json" | tr  -d '"')
 MANIFEST_BLOB_PATH="${IMAGE_DIR}/blobs/${MANIFEST_DIGEST}"
 
 CONFIG_DIGEST=$(${YQ} eval '.config.digest  | sub(":"; "/")' ${MANIFEST_BLOB_PATH})
 CONFIG_BLOB_PATH="${IMAGE_DIR}/blobs/${CONFIG_DIGEST}"
+echo >>"${mtree}" "blobs/${CONFIG_DIGEST} uid=0 gid=0 mode=0755 time=0 type=file content=${CONFIG_BLOB_PATH}"
 
 LAYERS=$(${YQ} eval '.layers | map(.digest | sub(":"; "/"))' ${MANIFEST_BLOB_PATH})
-
-mkdir -p $(dirname "${BLOBS_DIR}/${CONFIG_DIGEST}")
-cp "${CONFIG_BLOB_PATH}" "${BLOBS_DIR}/${CONFIG_DIGEST}"
-
 for LAYER in $(${YQ} ".[]" <<< $LAYERS); do 
-    cp -f "${IMAGE_DIR}/blobs/${LAYER}" "${BLOBS_DIR}/${LAYER}.tar.gz"
+    echo >>"${mtree}" "blobs/${LAYER}.tar.gz  uid=0 gid=0 mode=0755 time=0 type=file content=${IMAGE_DIR}/blobs/${LAYER}"
 done
 
 # Replace newlines (unix or windows line endings) with % character.
@@ -35,4 +36,7 @@ layers="${LAYERS}" \
         --null-input '.[0] = {"Config": env(config), "RepoTags": "${repo_tags}" | envsubst | split("%") | map(select(. != "")) , "Layers": env(layers) | map( "blobs/" + . + ".tar.gz") }' \
         --output-format json > "${STAGING_DIR}/manifest.json"
 
-${TAR} -C "${STAGING_DIR}" -cf "${TARBALL_PATH}" manifest.json blobs
+echo >>"${mtree}" "manifest.json uid=0 gid=0 mode=0644 time=0 type=file content=${STAGING_DIR}/manifest.json"
+
+# We've created the manifest, now hand it off to tar to create our final output
+"${TAR}" --create --file "${TARBALL_PATH}" "@${mtree}"

@@ -70,6 +70,9 @@ def _tarball_impl(ctx):
         substitutions = substitutions,
     )
 
+    # TODO(2.0): this oci_tarball rule should just produce an mtree manifest instead,
+    # and then the tar rule can be composed in the oci_tarball macro in defs.bzl.
+    # To make it a non-breaking change, call the tar program from within this action instead.
     ctx.actions.run(
         executable = util.maybe_wrap_launcher_for_windows(ctx, executable),
         inputs = depset(
