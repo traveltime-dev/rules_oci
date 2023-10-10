@@ -14,8 +14,7 @@ mtree=$(mktemp)
 function add_to_tar() {
     content=$1
     tar_path=$2
-    local mtree_flags="uid=0 gid=0 mode=0755 time=1672560000 type=file"
-    echo >>"${mtree}" "${tar_path} ${mtree_flags} content=${content}"
+    echo >>"${mtree}" "${tar_path} uid=0 gid=0 mode=0755 time=1672560000 type=file content=${content}"
 }
 
 MANIFEST_DIGEST=$(${YQ} eval '.manifests[0].digest | sub(":"; "/")' "${IMAGE_DIR}/index.json" | tr  -d '"')
@@ -42,7 +41,7 @@ layers="${LAYERS}" \
         --null-input '.[0] = {"Config": env(config), "RepoTags": "${repo_tags}" | envsubst | split("%") | map(select(. != "")) , "Layers": env(layers) | map( "blobs/" + . + ".tar.gz") }' \
         --output-format json > "${manifest_json}"
 
-add_to_tar "${manifest_json}" "manifest.json"
+add_to_tar "${manifest_json}@HOM" "manifest.json"
 
 # We've created the manifest, now hand it off to tar to create our final output
 "${TAR}" --create --file "${TARBALL_PATH}" "@${mtree}"
