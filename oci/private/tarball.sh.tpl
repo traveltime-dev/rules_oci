@@ -41,7 +41,7 @@ layers="${LAYERS}" \
         --null-input '.[0] = {"Config": env(config), "RepoTags": "${repo_tags}" | envsubst | split("%") | map(select(. != "")) , "Layers": env(layers) | map( "blobs/" + . + ".tar.gz") }' \
         --output-format json > "${manifest_json}"
 
-add_to_tar "${manifest_json}@HOM" "manifest.json"
+add_to_tar "${manifest_json}" "manifest.json"
 
 # We've created the manifest, now hand it off to tar to create our final output
 "${TAR}" --create --file "${TARBALL_PATH}" "@${mtree}"
