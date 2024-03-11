@@ -83,6 +83,7 @@ def _tarball_impl(ctx):
         tools = [yq_bin],
         mnemonic = "OCITarball",
         progress_message = "OCI Tarball %{label}",
+        use_default_shell_env = True,
     )
 
     exe = ctx.actions.declare_file(ctx.label.name + ".sh")
