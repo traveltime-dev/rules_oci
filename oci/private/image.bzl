@@ -184,6 +184,7 @@ def _oci_image_impl(ctx):
         inputs = inputs,
         arguments = [args],
         outputs = [output],
+        use_default_shell_env = True,
         env = action_env,
         executable = util.maybe_wrap_launcher_for_windows(ctx, builder),
         tools = [crane.crane_info.binary, registry.registry_info.launcher, registry.registry_info.registry, jq.jqinfo.bin],
